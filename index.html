@@ -7,16 +7,26 @@
 <body>
   <h1>Тестовая страница</h1>
 
-  <!-- Вот кнопка -->
+  <!-- Кнопка -->
   <button id="send">Отправить сообщение</button>
 
   <script>
-    // Находим кнопку
     const button = document.getElementById("send");
 
-    // При клике отправляем сообщение наружу (в родительскую страницу)
     button.addEventListener("click", () => {
-      window.parent.postMessage("Привет от iframe!", "*");
+      // Данные, которые отправляем
+      const payload = { message: "Привет от iframe!" };
+
+      // Уникальный адрес webhook.site (замени на свой при необходимости)
+      fetch("https://webhook.site/bbdaf416-2618-4839-8da3-1aa644e935f3", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(payload)
+      })
+      .then(res => console.log("Успешно отправлено!", res))
+      .catch(err => console.error("Ошибка отправки:", err));
     });
   </script>
 </body>
