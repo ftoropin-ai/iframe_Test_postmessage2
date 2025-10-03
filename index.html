@@ -2,54 +2,38 @@
 <html lang="ru">
 <head>
   <meta charset="UTF-8">
-  <title>Iframe Logger с фильтрацией</title>
+  <title>Iframe Logger + Webhook</title>
   <style>
     body { font-family: Arial, sans-serif; padding: 20px; }
-    #controls { margin-bottom: 15px; }
-    button { margin-right: 10px; padding: 5px 10px; }
-    #log { border: 1px solid #ccc; padding: 10px; height: 200px; overflow-y: auto; }
+    #log { border: 1px solid #ccc; padding: 10px; margin-top: 20px; height: 200px; overflow-y: auto; }
   </style>
 </head>
 <body>
-  <h1>Лог сообщений (с фильтрацией)</h1>
+  <h1>Тест отправки в Webhook</h1>
 
-  <div id="controls">
-    <button data-filter="all">Показать всё</button>
-    <button data-filter="mute">Только mute</button>
-    <button data-filter="unmute">Только unmute</button>
-  </div>
+  <button id="send">Отправить POST на webhook</button>
 
-  <div id="log">Жду сообщения...</div>
+  <div id="log">Жду нажатия...</div>
 
   <script>
     const logDiv = document.getElementById("log");
-    let currentFilter = "all";
+    const button = document.getElementById("send");
 
-    // Меняем фильтр по клику на кнопку
-    document.querySelectorAll("#controls button").forEach(btn => {
-      btn.addEventListener("click", () => {
-        currentFilter = btn.getAttribute("data-filter");
-        const p = document.createElement("p");
-        p.textContent = `🔄 Фильтр переключен: ${currentFilter}`;
-        p.style.fontStyle = "italic";
-        logDiv.appendChild(p);
+    button.addEventListener("click", () => {
+      const payload = { message: "Привет от iframe через no-cors!" };
+
+      // Отправляем POST
+      fetch("https://webhook.site/bbdaf416-2618-4839-8da3-1aa644e935f3", {
+        method: "POST",
+        mode: "no-cors",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
       });
-    });
 
-    // Слушаем входящие сообщения
-    window.addEventListener("message", (event) => {
-      try {
-        const msg = typeof event.data === "string" ? JSON.parse(event.data) : event.data;
-
-        // Проверка по фильтру
-        if (currentFilter === "all" || msg.type === currentFilter) {
-          const p = document.createElement("p");
-          p.textContent = `Событие: ${msg.type} | Данные: ${JSON.stringify(msg.data)}`;
-          logDiv.appendChild(p);
-        }
-      } catch (e) {
-        console.error("Ошибка при обработке сообщения:", e);
-      }
+      // Логируем на странице, чтобы видеть, что отправка произошла
+      const p = document.createElement("p");
+      p.textContent = "✅ POST-запрос отправлен: " + JSON.stringify(payload);
+      logDiv.appendChild(p);
     });
   </script>
 </body>
