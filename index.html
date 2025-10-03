@@ -4,36 +4,120 @@
   <meta charset="UTF-8">
   <title>Iframe Logger + Webhook</title>
   <style>
-    body { font-family: Arial, sans-serif; padding: 20px; }
-    #log { border: 1px solid #ccc; padding: 10px; margin-top: 20px; height: 200px; overflow-y: auto; }
+    body { 
+      font-family: Arial, sans-serif; 
+      padding: 20px; 
+      background-color: #2c003e; 
+      color: white;
+    }
+    button {
+      padding: 10px 20px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      cursor: pointer;
+      font-size: 16px;
+    }
+    button:hover { opacity: 0.9; }
+
+    #sendWebhook { background-color: #4caf50; color: white; }
+    #sendMessage { background-color: #2196f3; color: white; }
+    #logMessage { background-color: #ff9800; color: white; }
+
+    .filterBtn { background-color: #9c27b0; color: white; }
+
+    #log { 
+      border: 1px solid #ccc; 
+      padding: 10px; 
+      margin-top: 20px; 
+      height: 200px; 
+      overflow-y: auto; 
+      background: rgba(255,255,255,0.1);
+      border-radius: 5px;
+    }
   </style>
 </head>
 <body>
-  <h1>Тест отправки в Webhook</h1>
+  <h1>Iframe Logger + Webhook</h1>
 
-  <button id="send">Отправить POST на webhook</button>
+  <!-- Основные действия -->
+  <button id="sendWebhook">Отправить POST на Webhook</button>
+  <button id="sendMessage">Отправить postMessage наружу</button>
+  <button id="logMessage">Показать тестовое сообщение в лог</button>
 
-  <div id="log">Жду нажатия...</div>
+  <hr>
+
+  <!-- Фильтры -->
+  <h3>Фильтр сообщений</h3>
+  <button class="filterBtn" id="showAll">Показать всё</button>
+  <button class="filterBtn" id="showMute">Только mute</button>
+  <button class="filterBtn" id="showUnmute">Только unmute</button>
+
+  <div id="log">Жду действий...</div>
 
   <script>
     const logDiv = document.getElementById("log");
-    const button = document.getElementById("send");
+    let filter = "all"; // текущее состояние фильтра
+    const messages = []; // все полученные сообщения
 
-    button.addEventListener("click", () => {
-      const payload = { message: "Привет от iframe через no-cors!" };
+    function renderLog() {
+      logDiv.innerHTML = "";
+      messages
+        .filter(msg => {
+          if (filter === "all") return true;
+          if (filter === "mute") return msg.type === "mute";
+          if (filter === "unmute") return msg.type === "unmute";
+          return true;
+        })
+        .forEach(msg => {
+          const p = document.createElement("p");
+          p.textContent = "Получено: " + JSON.stringify(msg);
+          logDiv.appendChild(p);
+        });
+    }
 
-      // Отправляем POST
+    function addLog(msg) {
+      messages.push(msg);
+      renderLog();
+    }
+
+    // Кнопка 1: POST на webhook
+    document.getElementById("sendWebhook").addEventListener("click", () => {
+      const payload = { type: "test", message: "Привет от iframe через no-cors!" };
       fetch("https://webhook.site/0ae066f5-aab7-4b36-9fe5-94acf15e8d41", {
         method: "POST",
         mode: "no-cors",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
+      addLog(payload);
+    });
 
-      // Логируем на странице, чтобы видеть, что отправка произошла
-      const p = document.createElement("p");
-      p.textContent = "✅ POST-запрос отправлен: " + JSON.stringify(payload);
-      logDiv.appendChild(p);
+    // Кнопка 2: postMessage наружу
+    document.getElementById("sendMessage").addEventListener("click", () => {
+      const payload = { type: "info", message: "Привет от iframe!" };
+      window.parent.postMessage(payload, "*");
+      addLog(payload);
+    });
+
+    // Кнопка 3: тестовое сообщение
+    document.getElementById("logMessage").addEventListener("click", () => {
+      const payload = { type: "mute", message: "Это тестовое mute-сообщение" };
+      addLog(payload);
+    });
+
+    // Фильтры
+    document.getElementById("showAll").addEventListener("click", () => { filter = "all"; renderLog(); });
+    document.getElementById("showMute").addEventListener("click", () => { filter = "mute"; renderLog(); });
+    document.getElementById("showUnmute").addEventListener("click", () => { filter = "unmute"; renderLog(); });
+
+    // Слушаем входящие postMessage
+    window.addEventListener("message", (event) => {
+      if (typeof event.data === "object") {
+        addLog(event.data);
+      } else {
+        addLog({ type: "info", message: event.data });
+      }
     });
   </script>
 </body>
